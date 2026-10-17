@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVA FEUL 수출입계산기</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Malgun Gothic', sans-serif; }
+    body { background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
+    .app-container {
+      background-color: #ffffff;
+      width: 100%;
+      max-width: 440px;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    h1 { font-size: 20px; text-align: center; color: #1a1a1a; margin-top: 0; margin-bottom: 5px; }
+    .subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 15px; }
+    .rate-box {
+      background-color: #e6f7ed;
+      color: #03c75a;
+      border: 1px solid #b7ebcd;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .naver-link {
+      display: block;
+      text-align: right;
+      font-size: 12px;
+      color: #666;
+      text-decoration: none;
+      margin-bottom: 18px;
+    }
+    .input-group { margin-bottom: 18px; }
+    
+    .field-label { 
+      font-size: 13px; 
+      font-weight: bold; 
+      color: #444; 
+      margin-bottom: 6px; 
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+    }
+    .field-label span {
+      flex: 1;
+      text-align: center;
+    }
+
+    .standard-label { display: block; font-size: 13px; font-weight: bold; color: #444; margin-bottom: 6px; }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      outline: none;
+      text-align: center;
+    }
+    input:focus { border-color: #03c75a; }
+    .highlight-input { border: 2px solid #03c75a !important; background-color: #f4fff8; font-weight: bold; color: #03c75a; }
+
+    .row-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .small-input-wrap {
+      flex: 0 0 85px;
+    }
+    .converted-price {
+      flex: 1;
+      background-color: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 11px 8px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+    }
+    
+    /* 세관, CIF 박스용 스타일 */
+    .total-sub-price {
+      flex: 1.2;
+      background-color: #fff0f0;
+      border: 1px solid #ffcccc;
+      border-radius: 10px;
+      padding: 11px 8px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #d93025;
+      text-align: center;
+    }
+
+    /* 맨 아래 필리핀/한국 수익 박스 전용 반투명 스타일 */
+    .translucent-profit-box {
+      flex: 1.2;
+      background-color: rgba(255, 235, 235, 0.45) !important;
+      border: 1.5px solid rgba(255, 180, 180, 0.7) !important;
+      border-radius: 10px;
+      padding: 11px 8px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #d93025 !important;
+      text-align: center;
+      backdrop-filter: blur(4px);
+    }
+
+    /* 맨 밑 두 개 전체 라인에 반투명 박스를 씌우는 스타일 */
+    .profit-line-box {
+      background-color: rgba(255, 240, 240, 0.55);
+      border: 1.5px solid rgba(255, 190, 190, 0.75);
+      border-radius: 14px;
+      padding: 12px 10px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* 맨 밑 바닥 서명 중앙정렬 스타일 */
+    .footer-signature {
+      text-align: center;
+      font-size: 13px;
+      font-weight: bold;
+      color: #777;
+      margin-top: 22px;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <h1>⛽ NOVA FEUL 수입계산기</h1>
+    <div class="subtitle">네이버(하나은행) 고시환율 연동</div>
+
+    <div class="rate-box" id="rateDisplay">
+      🔄 네이버 실시간 고시환율 로딩 중...
+    </div>
+    <a class="naver-link" href="https://search.naver.com/search.naver?query=필리핀+페소+환율" target="_blank">
+      🔍 네이버 환율창 직접 대조하기 ↗
+    </a>
+
+    <div class="input-group">
+      <label class="standard-label">적용 환율 (1 페소당 원화 - 수정 가능)</label>
+      <input type="number" id="exchangeRate" class="highlight-input" step="0.001" value="21.26" oninput="calculate()">
+    </div>
+
+    <div class="input-group">
+      <label class="standard-label">수입량 (리터)</label>
+      <input type="number" id="importVolume" placeholder="수입량 입력" value="24000" oninput="calculate()">
+    </div>
+
+    <!-- 필리핀 세관 (기본값 20 고정) -->
+    <div class="input-group">
+      <div class="field-label">
+        <span style="flex: 0 0 85px;">세관(₱)</span>
+        <span style="flex: 1;">단가 원화(₩)</span>
+        <span style="flex: 1.2;">총합산 원화(₩)</span>
+      </div>
+      <div class="row-group">
+        <div class="small-input-wrap">
+          <input type="number" id="customsValue" placeholder="수치" value="20" oninput="calculate()">
+        </div>
+        <div class="converted-price" id="customsKrw">0 원</div>
+        <div class="total-sub-price" id="customsTotalKrw">0 원</div>
+      </div>
+    </div>
+
+    <!-- 한국에서의 금액(CIF) (기본값 60 고정) -->
+    <div class="input-group">
+      <div class="field-label">
+        <span style="flex: 0 0 85px;">CIF(₱)</span>
+        <span style="flex: 1;">단가 원화(₩)</span>
+        <span style="flex: 1.2;">총합산 원화(₩)</span>
+      </div>
+      <div class="row-group">
+        <div class="small-input-wrap">
+          <input type="number" id="cifValue" placeholder="금액" value="60" oninput="calculate()">
+        </div>
+        <div class="converted-price" id="cifKrw">0 원</div>
+        <div class="total-sub-price" id="cifTotalKrw">0 원</div>
+      </div>
+    </div>
+
+    <!-- 필측 수익(₱) (전체 라인 반투명 박스 적용) -->
+    <div class="input-group profit-line-box">
+      <div class="field-label">
+        <span style="flex: 0 0 85px;">필측 수익(₱)</span>
+        <span style="flex: 1;">단가 원화(₩)</span>
+        <span style="flex: 1.2;">총합산 원화(₩)</span>
+      </div>
+      <div class="row-group">
+        <div class="small-input-wrap">
+          <input type="number" id="philProfitValue" placeholder="값" value="1" oninput="calculate()">
+        </div>
+        <div class="converted-price" id="philProfitKrw">0 원</div>
+        <div class="translucent-profit-box" id="philProfitTotalKrw">0 원</div>
+      </div>
+    </div>
+
+    <!-- 한측 수익(₱) (전체 라인 반투명 박스 적용) -->
+    <div class="input-group profit-line-box">
+      <div class="field-label">
+        <span style="flex: 0 0 85px;">한측 수익(₱)</span>
+        <span style="flex: 1;">단가 원화(₩)</span>
+        <span style="flex: 1.2;">총합산 원화(₩)</span>
+      </div>
+      <div class="row-group">
+        <div class="small-input-wrap">
+          <input type="number" id="krProfitValue" placeholder="값" value="4" oninput="calculate()">
+        </div>
+        <div class="converted-price" id="krProfitKrw">0 원</div>
+        <div class="translucent-profit-box" id="krProfitTotalKrw">0 원</div>
+      </div>
+    </div>
+
+    <!-- 맨 밑 바닥 표기 (중간 정렬) -->
+    <div class="footer-signature">By JASON & SIMON</div>
+
+  </div>
+
+  <script>
+    async function fetchNaverExchangeRate() {
+      try {
+        const response = await fetch('https://m.stock.naver.com/front-api/marketIndex/prices?category=exchange&reutersCode=FX_PHPKRW&page=1');
+        const data = await response.json();
+
+        if (data && data.result && data.result.length > 0) {
+          const rawPrice = data.result[0].closePrice.replace(/,/g, '');
+          const naverRate = parseFloat(rawPrice).toFixed(2);
+
+          document.getElementById('exchangeRate').value = naverRate;
+          document.getElementById('rateDisplay').innerText = `🟢 네이버 고시환율 연동됨: 1 PHP = ${naverRate} 원`;
+          calculate();
+          return;
+        }
+      } catch (e) {}
+
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/PHP');
+        const d = await res.json();
+        if (d && d.rates && d.rates.KRW) {
+          const fallbackRate = d.rates.KRW.toFixed(2);
+          document.getElementById('exchangeRate').value = fallbackRate;
+          document.getElementById('rateDisplay').innerText = `⚡ 표준 고시환율 적용: 1 PHP = ${fallbackRate} 원 (수정 가능)`;
+          calculate();
+          return;
+        }
+      } catch (err) {}
+
+      document.getElementById('rateDisplay').innerText = `⚠️ 수동 입력 모드 (상단 칸에 네이버 환율을 직접 입력하세요)`;
+      calculate();
+    }
+
+    // 각 칸의 단가원화 및 총합산(리터 곱한 값) 실시간 계산 함수
+    function calculate() {
+      const rate = parseFloat(document.getElementById('exchangeRate').value) || 0;
+      const volume = parseFloat(document.getElementById('importVolume').value) || 0;
+      
+      const customs = parseFloat(document.getElementById('customsValue').value) || 0;
+      const cif = parseFloat(document.getElementById('cifValue').value) || 0;
+      const philProfit = parseFloat(document.getElementById('philProfitValue').value) || 0;
+      const krProfit = parseFloat(document.getElementById('krProfitValue').value) || 0;
+
+      // 1. 단가원화 환산 (입력값 × 환율)
+      const customsKrw = Math.round(customs * rate);
+      const cifKrw = Math.round(cif * rate);
+      const philProfitKrw = Math.round(philProfit * rate);
+      const krProfitKrw = Math.round(krProfit * rate);
+
+      // 2. 리터값을 곱한 총합산 (입력값 × 수입량 × 환율)
+      const customsTotalKrw = Math.round(customs * volume * rate);
+      const cifTotalKrw = Math.round(cif * volume * rate);
+      const philProfitTotalKrw = Math.round(philProfit * volume * rate);
+      const krProfitTotalKrw = Math.round(krProfit * volume * rate);
+
+      // 3. 화면 반영
+      document.getElementById('customsKrw').innerText = customsKrw.toLocaleString() + ' 원';
+      document.getElementById('customsTotalKrw').innerText = customsTotalKrw.toLocaleString() + ' 원';
+
+      document.getElementById('cifKrw').innerText = cifKrw.toLocaleString() + ' 원';
+      document.getElementById('cifTotalKrw').innerText = cifTotalKrw.toLocaleString() + ' 원';
+
+      document.getElementById('philProfitKrw').innerText = philProfitKrw.toLocaleString() + ' 원';
+      document.getElementById('philProfitTotalKrw').innerText = philProfitTotalKrw.toLocaleString() + ' 원';
+
+      document.getElementById('krProfitKrw').innerText = krProfitKrw.toLocaleString() + ' 원';
+      document.getElementById('krProfitTotalKrw').innerText = krProfitTotalKrw.toLocaleString() + ' 원';
+    }
+
+    // 초기 실행 및 환율 호출 후 계산 실행
+    fetchNaverExchangeRate();
+  </script>
+
+</body>
+</html>
